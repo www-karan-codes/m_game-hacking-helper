@@ -2,13 +2,15 @@
 
 namespace gamehacking::helper
 {
-	Timer::Timer(int period_in_ms) {
+	Timer::Timer(double period_in_ms) {
 		QueryPerformanceCounter(&time_);
+		QueryPerformanceCounter(&time_at_start_);
 		period_in_ms_ = period_in_ms;
 	}
 
 	Timer::Timer(void) {
 		QueryPerformanceCounter(&time_);
+		QueryPerformanceCounter(&time_at_start_);
 	}
 
 	bool Timer::Tick(double* out) {
@@ -45,6 +47,18 @@ namespace gamehacking::helper
 		return delta_ms;
 	}
 
+	double Timer::GetTotalElapsedTime(void) { // in MS
+		LARGE_INTEGER time;
+		QueryPerformanceCounter(&time);
+		static LARGE_INTEGER frequency = { 0 };
+		if (frequency.QuadPart == 0) {
+			QueryPerformanceFrequency(&frequency);
+		}
+
+		double delta_ms = (double)(time.QuadPart - time_at_start_.QuadPart) / frequency.QuadPart * 1000.0;
+		return delta_ms;
+	}
+
 	TimerWithFunctionAndData::TimerWithFunctionAndData(int period_in_ms, void (*function)(void*), void* data) : Timer(period_in_ms) {
 			this->function = function;
 			this->data = data;
@@ -55,5 +69,20 @@ namespace gamehacking::helper
 		if (return_value)
 			function(data);
 		return return_value;
+	}
+
+	void Timer::Reset(void)
+	{
+		QueryPerformanceCounter(&time_);
+		QueryPerformanceCounter(&time_at_start_);
+	}
+
+	double Timer::GetTimeDifference(LARGE_INTEGER start, LARGE_INTEGER end)
+	{
+		static LARGE_INTEGER frequency = { 0 };
+		if (frequency.QuadPart == 0) {
+			QueryPerformanceFrequency(&frequency);
+		}
+		return (double)(end.QuadPart - start.QuadPart) / frequency.QuadPart * 1000.0;
 	}
 }
